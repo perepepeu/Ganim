@@ -6,13 +6,17 @@ import torchvision.utils as vutils
 import cv2
 
 
-def weightsInit(m):
+def weights_init(m):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
     elif classname.find("BatchNorm") != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
+
+
+# Backward compatibility for existing imports
+weightsInit = weights_init
 
 
 def show(images_tensor, window_title="Ganim", window_size=None):

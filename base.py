@@ -25,7 +25,7 @@ WORKERS = 2 if platform.system() != "Windows" else 0
 
 REAL_LABEL = 0.9
 FAKE_LABEL = 0.1
-D_UPDATES_PER_G_UPDATE = 1
+D_UPDATES_PER_G = 1
 
 class Generator(nn.Module):
     def __init__(self, latent_dim, channels):
@@ -92,12 +92,12 @@ def train():
     ])
 
     try:
-        dataset = ImageFolder('./imgs', transform=transform)
+        dataset = ImageFolder("./data", transform=transform)
         if not dataset:
-            raise ValueError("A pasta './imgs' está vazia ou não contém subpastas.")
+            raise ValueError("A pasta './data' está vazia ou não contém subpastas.")
     except Exception as e:
         print(f"Erro ao carregar o dataset: {e}")
-        print("Certifique-se que a estrutura é: ./imgs/subpasta/imagem.png")
+        print("Certifique-se que a estrutura é: ./data/subpasta/imagem.png")
         return
 
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=WORKERS, pin_memory=True)
@@ -148,7 +148,7 @@ def train():
             d_loss.backward()
             opt_D.step()
 
-            if i % D_UPDATES_PER_G_UPDATE == 0:
+            if i % D_UPDATES_PER_G == 0:
                 G.zero_grad()
                 output_g = D(fake_imgs).view(-1)
                 g_loss = criterion(output_g, real_labels)

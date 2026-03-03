@@ -11,13 +11,13 @@ def run_training_workflow():
 
         ganim.setup(
             epochs=10,
-            imageSize=64,
-            sampleInterval=5,
-            previewImageCount=25,
-            previewWindowSize=768,
+            image_size=64,
+            sample_interval=5,
+            preview_image_count=25,
+            preview_window_size=768,
         )
 
-        trained_generator, history = ganim.fit(data="./imgs")
+        trained_generator, history = ganim.fit(data="./data")
 
         if trained_generator and history:
             ganim.plot(history)
@@ -28,7 +28,7 @@ def run_training_workflow():
         print("\nWorkflow de treinamento falhou ou foi interrompido.")
         return False
     except FileNotFoundError:
-        print("\nERRO: A pasta './imgs' não foi encontrada ou está vazia.")
+        print("\nERRO: A pasta './data' não foi encontrada ou está vazia.")
         print("Por favor, crie a pasta e coloque um subdiretório com suas imagens de treino dentro dela.")
         return False
     except Exception as exc:
