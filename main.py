@@ -1,60 +1,62 @@
-# main.py
+import os
+
 import ganim
-import torch
 
-# --- WORKFLOW DE TREINAMENTO ---
-print("--- Iniciando workflow de treinamento ---")
-try:
-    # Apague o modelo antigo se ele foi treinado com outra configuração
-    import os
-    if os.path.exists('./meu_gerador.pth'):
-        print("Modelo antigo encontrado. Recomenda-se apagar se a configuração mudou.")
 
-    # 1. O usuário agora pode controlar a prévia!
-    ganim.setup(
-        epochs=10, 
-        imageSize=64, # Lembre-se que a arquitetura atual é fixa para 64x64
-        sampleInterval=5,
-        previewImageCount=25,  # <-- QUERO VER 25 IMAGENS (5x5 grid)
-        previewWindowSize=768  # <-- E NUMA JANELA 768x768
-    )
+def run_training_workflow():
+    print("--- Iniciando workflow de treinamento ---")
+    try:
+        if os.path.exists("./meu_gerador.pth"):
+            print("Modelo antigo encontrado. Recomenda-se apagar se a configuração mudou.")
 
-    # 2. Treinar o modelo
-    trained_generator, history = ganim.fit(data='./imgs')
+        ganim.setup(
+            epochs=10,
+            imageSize=64,
+            sampleInterval=5,
+            previewImageCount=25,
+            previewWindowSize=768,
+        )
 
-    if trained_generator and history:
-        ganim.plot(history)
-        ganim.save(trained_generator, path='./meu_gerador.pth')
-        print("\nWorkflow de treinamento concluído com sucesso!")
-    else:
+        trained_generator, history = ganim.fit(data="./imgs")
+
+        if trained_generator and history:
+            ganim.plot(history)
+            ganim.save(trained_generator, path="./meu_gerador.pth")
+            print("\nWorkflow de treinamento concluído com sucesso!")
+            return True
+
         print("\nWorkflow de treinamento falhou ou foi interrompido.")
+        return False
+    except FileNotFoundError:
+        print("\nERRO: A pasta './imgs' não foi encontrada ou está vazia.")
+        print("Por favor, crie a pasta e coloque um subdiretório com suas imagens de treino dentro dela.")
+        return False
+    except Exception as exc:
+        print(f"\nOcorreu um erro inesperado durante o treino: {exc}")
+        return False
 
-except FileNotFoundError:
-    print("\nERRO: A pasta './imgs' não foi encontrada ou está vazia.")
-    print("Por favor, crie a pasta e coloque um subdiretório com suas imagens de treino dentro dela.")
-except Exception as e:
-    print(f"\nOcorreu um erro inesperado durante o treino: {e}")
+
+def run_generation_workflow():
+    print("\n--- Iniciando workflow de geração ---")
+    try:
+        generator = ganim.load(path="./meu_gerador.pth")
+        new_images = ganim.sample(model=generator, count=4)
+        ganim.show(
+            new_images,
+            window_title="Imagens Finais por Ganim",
+            window_size=1024,
+        )
+        print("Workflow de geração concluído!")
+        return True
+    except FileNotFoundError:
+        print("\nModelo './meu_gerador.pth' não encontrado.")
+        print("Execute o workflow de treinamento primeiro para criar o modelo.")
+        return False
+    except Exception as exc:
+        print(f"\nOcorreu um erro inesperado durante a geração: {exc}")
+        return False
 
 
-# --- WORKFLOW DE GERAÇÃO ---
-print("\n--- Iniciando workflow de geração ---")
-try:
-    # 4. Carregar um modelo já treinado
-    generator = ganim.load(path='./meu_gerador.pth')
-
-    # 5. Gerar um número diferente de imagens
-    new_images = ganim.sample(model=generator, count=4) # Pedindo 4 imagens (2x2 grid)
-
-    # 6. Mostrar as imagens em uma janela de tamanho personalizado
-    ganim.show(
-        new_images, 
-        window_title="Imagens Finais por Ganim",
-        window_size=1024 # <-- JANELA FINAL BEM GRANDE!
-    )
-    print("Workflow de geração concluído!")
-
-except FileNotFoundError:
-    print("\nModelo './meu_gerador.pth' não encontrado.")
-    print("Execute o workflow de treinamento primeiro para criar o modelo.")
-except Exception as e:
-    print(f"\nOcorreu um erro inesperado durante a geração: {e}")
+if __name__ == "__main__":
+    run_training_workflow()
+    run_generation_workflow()

@@ -1,4 +1,3 @@
-import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -10,10 +9,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 import platform
-import warnings
 from tqdm import tqdm
 
-# --- 1. Hiperparâmetros ---
 IMG_SIZE = 16
 DISPLAY_SIZE = 256
 CHANNELS = 3
@@ -30,7 +27,6 @@ REAL_LABEL = 0.9
 FAKE_LABEL = 0.1
 D_UPDATES_PER_G_UPDATE = 1
 
-# --- 2. Rede Geradora (Sem alterações) ---
 class Generator(nn.Module):
     def __init__(self, latent_dim, channels):
         super().__init__()
@@ -47,7 +43,6 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-# --- 3. Rede Discriminadora (Sem alterações) ---
 class Discriminator(nn.Module):
     def __init__(self, channels):
         super().__init__()
@@ -62,7 +57,6 @@ class Discriminator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-# --- 4. Inicialização dos pesos (Sem alterações) ---
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -71,7 +65,6 @@ def weights_init(m):
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
 
-# --- 5. Visualização com Pygame (CORRIGIDA) ---
 def update_display(screen, fixed_noise, epoch, generator, d_loss, g_loss):
     generator.eval()
     with torch.no_grad():
@@ -79,15 +72,10 @@ def update_display(screen, fixed_noise, epoch, generator, d_loss, g_loss):
     generator.train()
 
     img_grid = torchvision.utils.make_grid(img, normalize=True, nrow=4)
-    # Converte para (Altura, Largura, Canais) - Padrão NumPy
     img_np = np.transpose(img_grid.numpy(), (1, 2, 0))
-    
-    # ################################################################## #
-    # ## CORREÇÃO APLICADA AQUI ## #
-    # Converte para array de inteiros e transpõe de (H, W, C) para (W, H, C) para o Pygame
+
     img_to_display = np.transpose(np.uint8(img_np * 255), (1, 0, 2))
     img_surface = pygame.surfarray.make_surface(img_to_display)
-    # ################################################################## #
 
     img_surface_resized = pygame.transform.scale(img_surface, (DISPLAY_SIZE*2, DISPLAY_SIZE*2))
     screen.blit(img_surface_resized, (0, 0))
@@ -95,7 +83,6 @@ def update_display(screen, fixed_noise, epoch, generator, d_loss, g_loss):
     pygame.display.set_caption(caption)
     pygame.display.flip()
 
-# --- 6. Treinamento da GAN ---
 def train():
     transform = transforms.Compose([
         transforms.Resize(IMG_SIZE),
@@ -129,11 +116,9 @@ def train():
 
     pygame.init()
     screen = pygame.display.set_mode((DISPLAY_SIZE*2, DISPLAY_SIZE*2))
-    clock = pygame.time.Clock()
 
     print("Iniciando Loop de Treinamento Otimizado...")
     for epoch in range(1, EPOCHS + 1):
-        # Usamos uma cópia da lista de lotes para poder usar tqdm
         pbar = tqdm(dataloader, desc=f"Epoch {epoch}/{EPOCHS}")
         for i, (real_imgs, _) in enumerate(pbar):
             for event in pygame.event.get():
@@ -147,7 +132,6 @@ def train():
             real_imgs = real_imgs.to(DEVICE)
             batch_size = real_imgs.size(0)
 
-            # --- Treina D ---
             D.zero_grad()
             real_labels = torch.full((batch_size,), REAL_LABEL, device=DEVICE)
             fake_labels = torch.full((batch_size,), FAKE_LABEL, device=DEVICE)
@@ -164,7 +148,6 @@ def train():
             d_loss.backward()
             opt_D.step()
 
-            # --- Treina G ---
             if i % D_UPDATES_PER_G_UPDATE == 0:
                 G.zero_grad()
                 output_g = D(fake_imgs).view(-1)

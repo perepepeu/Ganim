@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+
+# Local training artifacts
+generator_interrupted.pth
+discriminator_interrupted.pth
+generator_final.pth
+discriminator_final.pth
+meu_gerador.pth
+
+# Local editor settings
+.vscode/

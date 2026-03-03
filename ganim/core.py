@@ -1,4 +1,3 @@
-# ganim/core.py
 import torch
 import torch.optim as optim
 import torchvision.transforms as transforms
@@ -10,20 +9,22 @@ from .config import settings
 from .models import Generator, Discriminator
 from .utils import weightsInit, show
 
+
 def setup(**kwargs):
     for key, value in kwargs.items():
         if hasattr(settings, key):
             setattr(settings, key, value)
         else:
             print(f"Aviso: A configuração '{key}' não é reconhecida e será ignorada.")
-    
-    if 'device' in kwargs:
-        settings.device = torch.device(kwargs['device'])
+
+    if "device" in kwargs:
+        settings.device = torch.device(kwargs["device"])
     print(f"Ganim configurado para usar o dispositivo: {settings.device}")
+
 
 def fit(data):
     print("Iniciando o processo de treinamento 'fit'...")
-    
+
     transform = transforms.Compose([
         transforms.Resize(settings.imageSize),
         transforms.CenterCrop(settings.imageSize),
@@ -43,9 +44,6 @@ def fit(data):
     netD.apply(weightsInit)
 
     criterion = torch.nn.BCEWithLogitsLoss()
-    
-    # --- ATUALIZAÇÃO ---
-    # Usa a configuração 'previewImageCount' para o ruído fixo
     fixed_noise = torch.randn(settings.previewImageCount, settings.latentDim, 1, 1, device=settings.device)
 
     optimizerD = optim.Adam(netD.parameters(), lr=settings.learningRate, betas=(settings.beta1, 0.999))
@@ -88,25 +86,24 @@ def fit(data):
         g_losses.append(errG.item())
         d_losses.append(errD.item())
 
-        # --- ATUALIZAÇÃO ---
-        # Usa as novas configs para mostrar a prévia
         if (epoch + 1) % settings.sampleInterval == 0:
             with torch.no_grad():
                 preview_images = netG(fixed_noise).detach().cpu()
-            # Passa o tamanho da janela de prévia para a função show!
             show(
                 preview_images, 
-                f"Ganim - Preview Epoch {epoch+1}",  # Corrigido para não usar acentos
+                f"Ganim - Preview Epoch {epoch+1}",
                 window_size=settings.previewWindowSize
             )
 
-    history = {'d_loss': d_losses, 'g_loss': g_losses}
+    history = {"d_loss": d_losses, "g_loss": g_losses}
     print("Treinamento concluído.")
     return netG, history
+
 
 def save(model, path="ganim_model.pth"):
     torch.save(model.state_dict(), path)
     print(f"Modelo salvo em: {path}")
+
 
 def load(path):
     model = Generator(settings.latentDim, settings.channels, settings.imageSize).to(settings.device)
@@ -114,6 +111,7 @@ def load(path):
     model.eval()
     print(f"Modelo carregado de: {path}")
     return model
+
 
 def sample(model, count=1):
     noise = torch.randn(count, settings.latentDim, 1, 1, device=settings.device)

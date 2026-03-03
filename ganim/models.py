@@ -1,4 +1,3 @@
-# ganim/models.py
 import torch.nn as nn
 
 class Generator(nn.Module):
@@ -42,7 +41,3 @@ class Discriminator(nn.Module):
         )
     def forward(self, x):
         return self.model(x)
-
-
-
-
