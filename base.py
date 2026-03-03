@@ -117,53 +117,69 @@ def train():
     pygame.init()
     screen = pygame.display.set_mode((DISPLAY_SIZE*2, DISPLAY_SIZE*2))
 
+    if SAMPLE_INTERVAL <= 0:
+        raise ValueError("SAMPLE_INTERVAL deve ser maior que 0.")
+
     print("Iniciando Loop de Treinamento Otimizado...")
-    for epoch in range(1, EPOCHS + 1):
-        pbar = tqdm(dataloader, desc=f"Epoch {epoch}/{EPOCHS}")
-        for i, (real_imgs, _) in enumerate(pbar):
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    print("Treinamento interrompido pelo usuário.")
-                    torch.save(G.state_dict(), "generator_interrupted.pth")
-                    torch.save(D.state_dict(), "discriminator_interrupted.pth")
-                    return
+    total_blocks = (EPOCHS + SAMPLE_INTERVAL - 1) // SAMPLE_INTERVAL
+    last_d_loss = 0.0
+    last_g_loss = 0.0
 
-            real_imgs = real_imgs.to(DEVICE)
-            batch_size = real_imgs.size(0)
+    for block_start in range(1, EPOCHS + 1, SAMPLE_INTERVAL):
+        block_end = min(block_start + SAMPLE_INTERVAL - 1, EPOCHS)
+        block_idx = ((block_start - 1) // SAMPLE_INTERVAL) + 1
+        block_desc = f"Bloco {block_idx}/{total_blocks} | Epochs {block_start}-{block_end}"
 
-            D.zero_grad()
-            real_labels = torch.full((batch_size,), REAL_LABEL, device=DEVICE)
-            fake_labels = torch.full((batch_size,), FAKE_LABEL, device=DEVICE)
-            
-            d_output_real = D(real_imgs).view(-1)
-            loss_d_real = criterion(d_output_real, real_labels)
+        block_pbar = tqdm(range(block_start, block_end + 1), desc=block_desc, unit="epoch")
+        for epoch in block_pbar:
+            for i, (real_imgs, _) in enumerate(dataloader):
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        print("Treinamento interrompido pelo usuário.")
+                        torch.save(G.state_dict(), "generator_interrupted.pth")
+                        torch.save(D.state_dict(), "discriminator_interrupted.pth")
+                        return
 
-            noise = torch.randn(batch_size, LATENT_DIM, 1, 1, device=DEVICE)
-            fake_imgs = G(noise)
-            d_output_fake = D(fake_imgs.detach()).view(-1)
-            loss_d_fake = criterion(d_output_fake, fake_labels)
+                real_imgs = real_imgs.to(DEVICE)
+                batch_size = real_imgs.size(0)
 
-            d_loss = loss_d_real + loss_d_fake
-            d_loss.backward()
-            opt_D.step()
+                D.zero_grad()
+                real_labels = torch.full((batch_size,), REAL_LABEL, device=DEVICE)
+                fake_labels = torch.full((batch_size,), FAKE_LABEL, device=DEVICE)
 
-            if i % D_UPDATES_PER_G == 0:
-                G.zero_grad()
-                output_g = D(fake_imgs).view(-1)
-                g_loss = criterion(output_g, real_labels)
-                g_loss.backward()
-                opt_G.step()
-            else:
-                g_loss = g_loss if 'g_loss' in locals() else torch.tensor(0)
-            
-            pbar.set_postfix(D_loss=d_loss.item(), G_loss=g_loss.item())
+                d_output_real = D(real_imgs).view(-1)
+                loss_d_real = criterion(d_output_real, real_labels)
 
-        d_losses.append(d_loss.item())
-        g_losses.append(g_loss.item())
+                noise = torch.randn(batch_size, LATENT_DIM, 1, 1, device=DEVICE)
+                fake_imgs = G(noise)
+                d_output_fake = D(fake_imgs.detach()).view(-1)
+                loss_d_fake = criterion(d_output_fake, fake_labels)
 
-        if epoch % SAMPLE_INTERVAL == 0 or epoch == 1:
-            update_display(screen, fixed_noise, epoch, G, d_loss.item(), g_loss.item())
+                d_loss = loss_d_real + loss_d_fake
+                d_loss.backward()
+                opt_D.step()
+
+                if i % D_UPDATES_PER_G == 0:
+                    G.zero_grad()
+                    output_g = D(fake_imgs).view(-1)
+                    g_loss = criterion(output_g, real_labels)
+                    g_loss.backward()
+                    opt_G.step()
+                else:
+                    g_loss = torch.tensor(last_g_loss, device=DEVICE)
+
+            last_d_loss = d_loss.item()
+            last_g_loss = g_loss.item()
+            d_losses.append(last_d_loss)
+            g_losses.append(last_g_loss)
+            block_pbar.set_postfix(
+                epoch=f"{epoch}/{EPOCHS}",
+                D_loss=f"{last_d_loss:.4f}",
+                G_loss=f"{last_g_loss:.4f}",
+            )
+
+        update_display(screen, fixed_noise, block_end, G, last_d_loss, last_g_loss)
 
     pygame.quit()
     torch.save(G.state_dict(), "generator_final.pth")
