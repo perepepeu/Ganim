@@ -91,11 +91,12 @@ Plota os graficos de perda do treinamento.
 
 `ganim.save(model, path="ganim_model.pth")`
 
-Salva os pesos do modelo.
+Salva os pesos e metadados de configuracao do modelo (como `latent_dim`, `channels` e `image_size`).
 
 `ganim.load(path)`
 
-Carrega os pesos de um modelo salvo e retorna um novo objeto gerador.
+Carrega um modelo salvo usando os metadados do arquivo quando disponiveis.
+Arquivos antigos (apenas `state_dict`) continuam sendo suportados.
 
 ## Parametros de `setup`
 
@@ -107,8 +108,14 @@ Carrega os pesos de um modelo salvo e retorna um novo objeto gerador.
 | `epochs`               | 5000   | Numero total de epocas de treinamento. |
 | `batch_size`           | 64     | Quantidade de imagens por lote. |
 | `learning_rate`        | 0.0002 | Taxa de aprendizado dos modelos. |
+| `d_updates_per_g`      | 1      | Quantas atualizacoes do D para cada atualizacao do G (>= 1). |
 | `sample_interval`      | 100    | Frequencia (em epocas) para gerar previas. |
 | `preview_image_count`  | 16     | Quantidade de imagens por previa. |
 | `preview_window_size`  | 512    | Tamanho da janela de previa em pixels. |
 
 Compatibilidade retroativa: os nomes antigos em camelCase (como `imageSize` e `batchSize`) continuam aceitos.
+
+Validacoes de seguranca importantes:
+- `channels` aceita apenas `1` (cinza) ou `3` (RGB).
+- `sample_interval` e `d_updates_per_g` devem ser `>= 1`.
+- `batch_size`, `epochs` e `preview_image_count` devem ser `>= 1`.
